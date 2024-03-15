@@ -8,6 +8,27 @@ from tqdm.auto import tqdm
 # This scripts extracts the full text for all articles that ADS has open access
 # availablility.
 
+def extract_plain_text(bibcodes, output_directory):
+
+    # base path for fulltext files
+    base_path = "/proj/adsnull/docker/volumes/backoffice_prod_fulltext_pipeline_live/_data/"
+
+    # Loop through all bibcodes in list
+    for index, bibcode in enumerate(bibcodes):
+        fulltext_path = None
+        print()
+        print(index)
+        print(bibcode)
+
+        
+        # Add path to full text to dataframe for each article
+        text_path = os.path.join(base_path, ptree.id2ptree(bibcode))
+
+
+         
+
+
+
 
 if __name__ == "__main__":
 

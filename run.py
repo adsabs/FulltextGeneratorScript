@@ -13,6 +13,7 @@
 
 import os
 import csv
+import shutil
 # import sys
 # import time
 # import json
@@ -26,7 +27,8 @@ import argparse
 # import pandas as pd
 # from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-from OpenCorpus.extract_xml_links import extract_xml_links
+from OpenCorpusScript.extract_xml_links import extract_xml_links
+from OpenCorpusScript.extract_plain_text import extract_plain_text
 # from adsputils import get_date
 # from adsmsg import OrcidClaims
 # from SciX_Classifier import classifier, tasks
@@ -39,9 +41,9 @@ from adsputils import setup_logging, load_config
 proj_home = os.path.realpath(os.path.dirname(__file__))
 global config
 config = load_config(proj_home=proj_home)
-logger = setup_logging('run.py', proj_home=proj_home,
-                        level=config.get('LOGGING_LEVEL', 'INFO'),
-                        attach_stdout=config.get('LOG_STDOUT', False))
+# logger = setup_logging('run.py', proj_home=proj_home,
+#                         level=config.get('LOGGING_LEVEL', 'INFO'),
+#                         attach_stdout=config.get('LOG_STDOUT', False))
 
 # app = tasks.app
 
@@ -87,11 +89,20 @@ if __name__ == '__main__':
             # bibcodes = f.readlines()
             bibcodes = f.read().splitlines()
 
+        # For now let the output directory be the same directory as the input file
+        output_directory = os.path.join(*bibcodes_path.split("/")[0:-1])
         
 
     # all.links path on server is /proj/ads/abstracts/links/all.links
+    # First copy all.links locally 
+    # Will need to mount the propoer volume
+    # all_links_path = '/proj/ads/abstracts/links/all.links'  
     # will use local copy for testing
-    all_links_path = 'OpenCorpus/tests/stub_data/all.links'
+    all_links_path = 'OpenCorpusScript/tests/stub_data/all.links'
+
+    # shutil.copyfile(all_links_path, all_links_path_local)
+    # import pdb;pdb.set_trace()
+
 
     # Case where we are extracting plain text
     if not args.extract_xml:
@@ -103,7 +114,7 @@ if __name__ == '__main__':
         # For now, we will just print the bibcodes
         print(bibcodes)
         print(all_links_path)
-        plain_text_list = extract_plain_text_links(bibcodes)
+        plain_text_list = extract_plain_text(bibcodes, output_directory+'/plain_text')
         print("Done Extracting Plain Text Links")
         # import pdb;pdb.set_trace()
 
@@ -118,9 +129,9 @@ if __name__ == '__main__':
         print(bibcodes)
         print(all_links_path)
 
-        xml_list = extract_xml_links(bibcodes, all_links_path)
+        xml_list = extract_xml_links(bibcodes, all_links_path, output_directory)
         print("Done Extracting XML Links")
-        # import pdb;pdb.set_trace()
+        import pdb;pdb.set_trace()
 
                                                                                 
                                                                                 
