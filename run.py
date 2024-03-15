@@ -29,6 +29,8 @@ import argparse
 
 from OpenCorpusScript.extract_xml_links import extract_xml_links
 from OpenCorpusScript.extract_plain_text import extract_plain_text
+# from OpenCorpusScript.harvest_bibcode import harvest_bibcode
+from OpenCorpusScript.extract_all_links import extract_all_links
 # from adsputils import get_date
 # from adsmsg import OrcidClaims
 # from SciX_Classifier import classifier, tasks
@@ -103,6 +105,15 @@ if __name__ == '__main__':
     # shutil.copyfile(all_links_path, all_links_path_local)
     # import pdb;pdb.set_trace()
 
+    # Loop through bibcodes and check if source link exists
+    source_list = []
+    for bibcode in bibcodes:
+
+        print(f'Searching for {bibcode}')
+        source = extract_all_links(bibcode, all_links_path)
+        source_list.append(source)
+
+    import pdb;pdb.set_trace()
 
     # Case where we are extracting plain text
     if not args.extract_xml:
