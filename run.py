@@ -27,7 +27,8 @@ import argparse
 # import pandas as pd
 # from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-from OpenCorpusScript.extract_xml_links import extract_xml_links
+# from OpenCorpusScript.extract_xml_links import extract_xml_links
+from OpenCorpusScript.extract_source_file import extract_source_file
 from OpenCorpusScript.extract_plain_text import extract_plain_text
 from OpenCorpusScript.harvest_bibcode import harvest_bibcode
 from OpenCorpusScript.extract_all_links import extract_all_links
@@ -107,22 +108,31 @@ if __name__ == '__main__':
 
     # Loop through bibcodes and check if source link exists
     source_list = []
-    for input_id in id_list:
+    for source_id in id_list:
 
-        print(f'Searching for {input_id}')
-        source = extract_all_links(input_id, all_links_path)
-        source_list.append(source)
+        print(f'Searching for {source_id}')
+        source = extract_all_links(source_id, all_links_path)
+        source_dict = {'source_id' : source_id,
+                       'source_info' : source}
+        source_list.append(source_dict)
 
     # Now loop through id's and source list and if source list is None
     # query SOLR using the ID to obtain the bicode for the record
 
-    for index, (in_id, item) in enumerate(zip(id_list, source_list)):
+    # for index, (in_id, item) in enumerate(zip(id_list, source_list)):
+    for index, item in enumerate(source_list):
 
+        source_id = item['source_id']
+        source = item['source_info']
         # Query SOLR if source_list value is None
-        if item is None:
-            bibcode = harvest_bibcode(in_id)
+        if source is None:
+            bibcode = harvest_bibcode(source_id)
+            # If bibcode is resolved extract info from all.links
+            # and update source list
             if bibcode is not None:
-                source_list[index] = extract_all_links(bibcode, all_links_path)
+                source = extract_all_links(bibcode, all_links_path)
+                item['source_info'] = source
+                source_list[index] = item
 
             # import pdb;pdb.set_trace
 
@@ -130,36 +140,44 @@ if __name__ == '__main__':
 
     # import pdb;pdb.set_trace()
 
-    # Case where we are extracting plain text
-    if not args.extract_xml:
-        print("Extracting Plain Text")
         # Extract the plain text for the bibcodes
-        # This will be a separate function
-        # The function will take the bibcodes and the path to the all.links file
-        # It will return a list of plain text strings
-        # For now, we will just print the bibcodes
-        print(bibcodes)
-        print(all_links_path)
-        plain_text_list = extract_plain_text(bibcodes, output_directory+'/plain_text')
-        print("Done Extracting Plain Text Links")
+        # Loop through the source_list list defined above, 
+    for index, item in enumerate(source_list):
+        # Loop through records and extract relevant text
         # import pdb;pdb.set_trace()
 
-    # Case where we are extracting XML
-    if args.extract_xml:
-        print("Extracting XML")
-        # Extract the XML for the bibcodes
-        # This will be a separate function
-        # The function will take the bibcodes and the path to the all.links file
-        # It will return a list of XML strings
-        # For now, we will just print the bibcodes
-        print(bibcodes)
-        print(all_links_path)
+        # Case where we are extracting plain text
+        if not args.extract_xml:
+            print("Extracting Plain Text")
+            if item['source_info'] is not None:
+                bibcode = item['source_info']['source_bibcode']
+                output_filename = item['source_info']['source_filename']
+                output_filename = output_filename.split('.')
+                output_filename = output_filename[0] + '.txt'
+                # import pdb;pdb.set_trace()
+                extract_success = extract_plain_text(bibcode, output_filename, output_directory+'/plain_text/')
+                # Now remove the remaining zipped file
+                try:
+                    os.remove(f"{output_directory}/plain_text/fulltext.txt.gz")
+                except OSError:
+                    pass
 
-        xml_list = extract_xml_links(bibcodes, all_links_path, output_directory)
-        print("Done Extracting XML Links")
-        import pdb;pdb.set_trace()
+        # Case where we are extracting from all.links source or fulltext not availible
+        if args.extract_xml or extract_success is False:
+            # Extract source
+            if item['source_info'] is not None:
+                
+                src = item['source_info']['source_path']
+                dest = f"{output_directory}/xml_text/{item['source_info']['source_filename']}"
+                try:
+                    # shutil.copyfile(src, dest)
+                    shutil.copy(src, dest)
+                    print(f"Copied source text for : {item['source_id']}")
+                except:
+                    print(f"Source text for bibcode: {item['source_id']} not found")
+
 
                                                                                 
                                                                                 
     print("Done")                                                               
-    import pdb;pdb.set_trace()           
+    # import pdb;pdb.set_trace()           
