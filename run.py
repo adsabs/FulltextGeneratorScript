@@ -29,7 +29,7 @@ import argparse
 
 from OpenCorpusScript.extract_xml_links import extract_xml_links
 from OpenCorpusScript.extract_plain_text import extract_plain_text
-# from OpenCorpusScript.harvest_bibcode import harvest_bibcode
+from OpenCorpusScript.harvest_bibcode import harvest_bibcode
 from OpenCorpusScript.extract_all_links import extract_all_links
 # from adsputils import get_date
 # from adsmsg import OrcidClaims
@@ -65,11 +65,11 @@ if __name__ == '__main__':
                                                                                 
     parser = argparse.ArgumentParser(description='Process user input.')         
                                                                                 
-    parser.add_argument('-b',                                                   
-                        '--bibcodes',                                        
-                        dest='bibcodes',                                     
+    parser.add_argument('-i',                                                   
+                        '--input_ids',                                        
+                        dest='input_ids',                                     
                         action='store',                                    
-                        help='Path to text file with list of bibcodes to extract full text')                             
+                        help='Path to text file with list of bibcodes or dois to extract full text')                             
                                                                                 
     parser.add_argument('-x',                                                   
                         '--xml',                                           
@@ -82,17 +82,17 @@ if __name__ == '__main__':
 
                                                                                 
                                                                                 
-    if args.bibcodes:                                                            
-        bibcodes_path = args.bibcodes
-        print(bibcodes_path)                                                     
+    if args.input_ids:
+        input_ids_path = args.input_ids
+        print(input_ids_path)                                                     
         
         # Read the bibcodes file and extract the bibcodes into a list
-        with open(bibcodes_path, 'r') as f:                                      
+        with open(input_ids_path, 'r') as f:                                      
             # bibcodes = f.readlines()
-            bibcodes = f.read().splitlines()
+            id_list = f.read().splitlines()
 
         # For now let the output directory be the same directory as the input file
-        output_directory = os.path.join(*bibcodes_path.split("/")[0:-1])
+        output_directory = os.path.join(*input_ids_path.split("/")[0:-1])
         
 
     # all.links path on server is /proj/ads/abstracts/links/all.links
@@ -107,13 +107,28 @@ if __name__ == '__main__':
 
     # Loop through bibcodes and check if source link exists
     source_list = []
-    for bibcode in bibcodes:
+    for input_id in id_list:
 
-        print(f'Searching for {bibcode}')
-        source = extract_all_links(bibcode, all_links_path)
+        print(f'Searching for {input_id}')
+        source = extract_all_links(input_id, all_links_path)
         source_list.append(source)
 
-    import pdb;pdb.set_trace()
+    # Now loop through id's and source list and if source list is None
+    # query SOLR using the ID to obtain the bicode for the record
+
+    for index, (in_id, item) in enumerate(zip(id_list, source_list)):
+
+        # Query SOLR if source_list value is None
+        if item is None:
+            bibcode = harvest_bibcode(in_id)
+            if bibcode is not None:
+                source_list[index] = extract_all_links(bibcode, all_links_path)
+
+            # import pdb;pdb.set_trace
+
+
+
+    # import pdb;pdb.set_trace()
 
     # Case where we are extracting plain text
     if not args.extract_xml:
