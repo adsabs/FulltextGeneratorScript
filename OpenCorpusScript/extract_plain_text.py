@@ -35,8 +35,8 @@ def extract_plain_text(bibcode, output_filename, output_directory):
         # shutil.copytree(base_path+text_path, output_directory)
         # Will copy just the plain text file
         src = base_path+text_path+'fulltext.txt.gz'
-        dest = output_directory+'fulltext.txt.gz'
-        dest_unzipped = output_directory + output_filename
+        dest = output_directory / 'fulltext.txt.gz'
+        dest_unzipped = output_directory / output_filename
         # shutil.copyfile(src, dest)
         shutil.copy(src, dest)
         print(f"Copied bibcode: {bibcode})")

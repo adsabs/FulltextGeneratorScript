@@ -23,6 +23,7 @@ import argparse
 # import warnings
 # from urllib3 import exceptions
 # warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
+from pathlib import Path
 
 # import pandas as pd
 # from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -148,15 +149,25 @@ if __name__ == '__main__':
 
         # Case where we are extracting plain text
         if not args.extract_xml:
+            # Create output directory if it does not exist
+            plain_text_directory = Path(output_directory+'/plain_text/')
+            if not plain_text_directory.exists():
+                plain_text_directory.mkdir(parents=True, exist_ok=True)
+                print(f"Created {plain_text_directory}")
+            else:
+                print(f"{plain_text_directory} exits")
+
             print("Extracting Plain Text")
             if item['source_info'] is not None:
                 bibcode = item['source_info']['source_bibcode']
                 output_filename = item['source_info']['source_filename']
                 output_filename = output_filename.split('.')
                 output_filename = output_filename[0] + '.txt'
-                # import pdb;pdb.set_trace()
-                extract_success = extract_plain_text(bibcode, output_filename, output_directory+'/plain_text/')
+                extract_success = extract_plain_text(bibcode, output_filename, plain_text_directory)
                 # Now remove the remaining zipped file
+                # Write filename mapping to file
+                with open(plain_text_directory/"mapping_file.txt",'a') as f:
+                    f.write(f"{item['source_id']} {output_filename}\n")
                 try:
                     os.remove(f"{output_directory}/plain_text/fulltext.txt.gz")
                 except OSError:
@@ -164,6 +175,12 @@ if __name__ == '__main__':
 
         # Case where we are extracting from all.links source or fulltext not availible
         if args.extract_xml or extract_success is False:
+            source_text_directory = Path(output_directory+'/xml_text/')
+            if not source_text_directory.exists():
+                source_text_directory.mkdir(parents=True, exist_ok=True)
+                print(f"Created {source_text_directory}")
+            else:
+                print(f"{source_text_directory} exits")
             # Extract source
             if item['source_info'] is not None:
                 
@@ -173,6 +190,8 @@ if __name__ == '__main__':
                     # shutil.copyfile(src, dest)
                     shutil.copy(src, dest)
                     print(f"Copied source text for : {item['source_id']}")
+                    with open(plain_text_directory/"mapping_file.txt",'a') as f:
+                        f.write(f"{item['source_id']} {item['source_info']['source_filename']}\n")
                 except:
                     print(f"Source text for bibcode: {item['source_id']} not found")
 
