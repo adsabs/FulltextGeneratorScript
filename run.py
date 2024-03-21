@@ -2,42 +2,25 @@
 """
 """
 
-# __author__ = 'rca'
-# __maintainer__ = 'rca'
-# __copyright__ = 'Copyright 2015'
+# __author__ = 'tsa'
+# __maintainer__ = 'tsa'
+# __copyright__ = 'Copyright 2024'
 # __version__ = '1.0'
 # __email__ = 'ads@cfa.harvard.edu'
-# __status__ = 'Production'
-# __credit__ = ['J. Elliott']
+# __status__ = 'Development'
+# __credit__ = ['T. Allen']
 # __license__ = 'MIT'
 
 import os
 import csv
 import shutil
-# import sys
-# import time
-# import json
 import argparse
-# import logging
-# import traceback
-# import warnings
-# from urllib3 import exceptions
-# warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 from pathlib import Path
 
-# import pandas as pd
-# from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# from OpenCorpusScript.extract_xml_links import extract_xml_links
-from OpenCorpusScript.extract_source_file import extract_source_file
 from OpenCorpusScript.extract_plain_text import extract_plain_text
 from OpenCorpusScript.harvest_bibcode import harvest_bibcode
 from OpenCorpusScript.extract_all_links import extract_all_links
-# from adsputils import get_date
-# from adsmsg import OrcidClaims
-# from SciX_Classifier import classifier, tasks
-# from ADSOrcid import updater, tasks
-# from ADSOrcid.models import ClaimsLog, KeyValue, Records, AuthorInfo
 
 # # ============================= INITIALIZATION ==================================== #
 
@@ -53,15 +36,27 @@ config = load_config(proj_home=proj_home)
 
 # =============================== FUNCTIONS ======================================= #
 
+def create_output_directory(output_directory):
 
+    output_directory_path = Path(output_directory)
+
+    # First delete directory if it exists
+    if output_directory_path.exists():
+        print('Output directory exists, deleting')
+        shutil.rmtree(output_directory_path)
+
+    # Now create the new directory
+    output_directory_path.mkdir(parents=True, exist_ok=True)
+
+    return output_directory_path
 
 # =============================== MAIN ======================================= #
                                                                                 
 # To test the classifier                                                        
 # For plain text
-# python run.py -b OpenCorpus/tests/stub_data/stub_bibcodes.txt
+# python run.py -b OpenCorpus/tests/stub_data/stub_bibcodes_doi.txt
 # For XML
-# python run.py -b OpenCorpus/tests/stub_data/stub_bibcodes.txt -x
+# python run.py -b OpenCorpus/tests/stub_data/stub_bibcodes_doi.txt -x
                                                                                 
 if __name__ == '__main__':                                                      
                                                                                 
@@ -105,7 +100,6 @@ if __name__ == '__main__':
     all_links_path = 'OpenCorpusScript/tests/stub_data/all.links'
 
     # shutil.copyfile(all_links_path, all_links_path_local)
-    # import pdb;pdb.set_trace()
 
     # Loop through bibcodes and check if source link exists
     source_list = []
@@ -120,6 +114,8 @@ if __name__ == '__main__':
     # Now loop through id's and source list and if source list is None
     # query SOLR using the ID to obtain the bicode for the record
 
+    # Creata a fail list
+    fail_list = []
     # for index, (in_id, item) in enumerate(zip(id_list, source_list)):
     for index, item in enumerate(source_list):
 
@@ -134,58 +130,56 @@ if __name__ == '__main__':
                 source = extract_all_links(bibcode, all_links_path)
                 item['source_info'] = source
                 source_list[index] = item
+            if bibcode is None:
+                fail_list.append(source_id)
 
-            # import pdb;pdb.set_trace
+    # Write the fail list to a file
+    with open(output_directory+'/failed_ids.txt','w') as f:
+        for line in fail_list:
+            f.write(f"{line}\n")
 
+    # Create directories for plain text and source text
+    # Note one or both may be used
+    plain_text_directory = create_output_directory(output_directory+'/plain_text/')
+    source_text_directory = create_output_directory(output_directory+'/xml_text/')
 
+    # Create list of mapping from input ID to output file
+    mapping_list = []
 
-    # import pdb;pdb.set_trace()
-
-        # Extract the plain text for the bibcodes
-        # Loop through the source_list list defined above, 
+    # Extract the plain text for the bibcodes
+    # Loop through the source_list list defined above, 
     for index, item in enumerate(source_list):
         # Loop through records and extract relevant text
         # import pdb;pdb.set_trace()
 
         # Case where we are extracting plain text
         if not args.extract_xml:
-            # Create output directory if it does not exist
-            plain_text_directory = Path(output_directory+'/plain_text/')
-            if not plain_text_directory.exists():
-                plain_text_directory.mkdir(parents=True, exist_ok=True)
-                print(f"Created {plain_text_directory}")
-            else:
-                print(f"{plain_text_directory} exits")
-
             print("Extracting Plain Text")
             if item['source_info'] is not None:
                 bibcode = item['source_info']['source_bibcode']
                 output_filename = item['source_info']['source_filename']
                 output_filename = output_filename.split('.')
+                output_filepath = output_filename[0]
                 output_filename = output_filename[0] + '.txt'
-                extract_success = extract_plain_text(bibcode, output_filename, plain_text_directory)
-                # Now remove the remaining zipped file
+
+                # Copy the plain text to local directory
+                # Note this will copy fulltext.txt.gz, acknowledgments.txt.gz and meta.json 
+                # to a directory named output_filepath
+                extract_success = extract_plain_text(bibcode, output_filepath, plain_text_directory)
+
                 # Write filename mapping to file
-                with open(plain_text_directory/"mapping_file.txt",'a') as f:
-                    f.write(f"{item['source_id']} {output_filename}\n")
-                try:
-                    os.remove(f"{output_directory}/plain_text/fulltext.txt.gz")
-                except OSError:
-                    pass
+                mapping_path = f"{plain_text_directory}/{output_filepath}".split('/')[-2:]
+                mapping_path = '/'.join(mapping_path)
+                mapping_line = f"{item['source_id']} {mapping_path}\n"
+                mapping_list.append(mapping_line)
 
         # Case where we are extracting from all.links source or fulltext not availible
         if args.extract_xml or extract_success is False:
-            source_text_directory = Path(output_directory+'/xml_text/')
-            if not source_text_directory.exists():
-                source_text_directory.mkdir(parents=True, exist_ok=True)
-                print(f"Created {source_text_directory}")
-            else:
-                print(f"{source_text_directory} exits")
             # Extract source
             if item['source_info'] is not None:
                 
                 src = item['source_info']['source_path']
-                dest = f"{output_directory}/xml_text/{item['source_info']['source_filename']}"
+                dest = f"{source_text_directory}/{item['source_info']['source_filename']}"
                 try:
                     # shutil.copyfile(src, dest)
                     shutil.copy(src, dest)
@@ -194,9 +188,14 @@ if __name__ == '__main__':
                         f.write(f"{item['source_id']} {item['source_info']['source_filename']}\n")
                 except:
                     print(f"Source text for bibcode: {item['source_id']} not found")
+                mapping_path = f"{source_text_directory}/{item['source_info']['source_filename']}".split('/')[-2:]
+                mapping_path = '/'.join(mapping_path)
+                mapping_line = f"{item['source_id']} {mapping_path}\n"
+                mapping_list.append(mapping_line)
 
-
-                                                                                
+    # Write mapping list to file
+    with open(output_directory+"/mapping_file.txt",'w') as f:
+        for line in mapping_list:
+            f.write(line)
                                                                                 
     print("Done")                                                               
-    # import pdb;pdb.set_trace()           
