@@ -146,6 +146,10 @@ if __name__ == '__main__':
     # Create list of mapping from input ID to output file
     mapping_list = []
 
+    # Create mapping file
+    with open(output_directory+"/mapping_file.txt",'w') as f:
+        f.write('Identifier Filename\n')
+
     # Extract the plain text for the bibcodes
     # Loop through the source_list list defined above, 
     for index, item in enumerate(source_list):
@@ -193,9 +197,13 @@ if __name__ == '__main__':
                 mapping_line = f"{item['source_id']} {mapping_path}\n"
                 mapping_list.append(mapping_line)
 
-    # Write mapping list to file
-    with open(output_directory+"/mapping_file.txt",'w') as f:
-        for line in mapping_list:
-            f.write(line)
+        # Write mapping list to file
+        # Do so for every 500 records
+        if (index % 500) == 0:
+            with open(output_directory+"/mapping_file.txt",'w') as f:
+                for line in mapping_list:
+                    f.write(line)
+            # Reset mapping_list to an empty list
+            mapping_list = []
                                                                                 
     print("Done")                                                               
