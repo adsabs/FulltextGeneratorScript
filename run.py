@@ -199,8 +199,8 @@ if __name__ == '__main__':
 
         # Write mapping list to file
         # Do so for every 500 records
-        if (index % 500) == 0:
-            with open(output_directory+"/mapping_file.txt",'w') as f:
+        if (index % 500) == 0 or len(source_list) < 500:
+            with open(output_directory+"/mapping_file.txt",'a') as f:
                 for line in mapping_list:
                     f.write(line)
             # Reset mapping_list to an empty list
