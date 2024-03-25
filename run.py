@@ -147,7 +147,9 @@ if __name__ == '__main__':
     mapping_list = []
 
     # Create mapping file
-    with open(output_directory+"/mapping_file.txt",'w') as f:
+    mapping_batch = 500 # batch size for writing to the mapping file
+    mapping_file = output_directory + "/mapping_file.txt"
+    with open(mapping_file,'w') as f:
         f.write('Identifier Filename\n')
 
     # Extract the plain text for the bibcodes
@@ -155,6 +157,7 @@ if __name__ == '__main__':
     for index, item in enumerate(source_list):
         # Loop through records and extract relevant text
         # import pdb;pdb.set_trace()
+        mapping_line = None  
 
         # Case where we are extracting plain text
         if not args.extract_xml:
@@ -199,8 +202,8 @@ if __name__ == '__main__':
 
         # Write mapping list to file
         # Do so for every 500 records
-        if (index % 500) == 0 or len(source_list) < 500:
-            with open(output_directory+"/mapping_file.txt",'a') as f:
+        if (index + 1 % mapping_batch) == 0 or (index == len(source_list)-1):
+            with open(mapping_file, 'a') as f:
                 for line in mapping_list:
                     f.write(line)
             # Reset mapping_list to an empty list
