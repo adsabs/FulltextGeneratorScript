@@ -4,10 +4,11 @@ import shutil
 import gzip
 
 import ptree
-from tqdm.auto import tqdm
+from adsputils import load_config
 
 # This scripts extracts the full text for all articles that ADS has open access
 # availablility.
+config = load_config(proj_home=os.path.realpath(os.path.join(os.path.dirname(__file__), '../')))
 
 def extract_plain_text(bibcode, output_filepath, output_directory, unzip_text=True):
     """ Copy fulltext, acknowledgements and meta.json from stroage on server to 
@@ -19,20 +20,10 @@ def extract_plain_text(bibcode, output_filepath, output_directory, unzip_text=Tr
         unzip_text: switch to unzip the files that are copied. defaults to True
     """
 
-    # base path for fulltext files
-    # base_path = "/proj/adsnull/docker/volumes/backoffice_prod_fulltext_pipeline_live/_data"
-    base_path = "/proj/adsnest/docker/volumes/backoffice_prod_fulltext_pipeline_live/_data"
-
-
-    # Add path to full text to dataframe for each article
-    text_path = os.path.join(base_path, ptree.id2ptree(bibcode))
-
-    # Copy the plain text to a local directory
-    src = base_path+text_path
-    dest = output_directory / output_filepath
+    src = os.path.join(config['BASE_PATH'], ptree.id2ptree(bibcode).lstrip('/'))
+    dest = os.path.join(output_directory, output_filepath)
     try:
-        # Will copy the whole directory - including fulltext, acknowledgements
-        # and metadata 
+        # Will copy includes fulltext, acknowledgements, and metadata
         shutil.copytree(src, dest)
         print(f"Copied bibcode: {bibcode})")
         success = True
@@ -45,12 +36,12 @@ def extract_plain_text(bibcode, output_filepath, output_directory, unzip_text=Tr
 
         # First fulltext 
         try:
-            unzip_dest(dest / 'fulltext.txt')
+            unzip_dest(os.path.join(dest, 'fulltext.txt.gz'))
         except:
             print(f'Failed to unzip {dest}/fulltext.txt.gz')
         # Now Acknowledgments
         try:
-            unzip_dest(dest / 'acknowledgements.txt')
+            unzip_dest(os.path.join(dest, 'acknowledgements.txt.gz'))
         except:
             print(f'Failed to unzip {dest}/acknowledgements.txt.gz')
 
@@ -65,9 +56,9 @@ def unzip_dest(filename):
                  file except without .gz at the end
     '''
 
-    filename = str(filename)
-    with gzip.open(filename +'.gz', 'rb') as infile:
-        with open(filename, 'wb') as outfile:
+    out_filename = '.'.join(filename.split('.')[0:-1])
+    with gzip.open(filename, 'rb') as infile:
+        with open(out_filename, 'wb') as outfile:
             for line in infile:
                 outfile.write(line)
 

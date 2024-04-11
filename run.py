@@ -155,6 +155,8 @@ if __name__ == '__main__':
     # Extract the plain text for the bibcodes
     # Loop through the source_list list defined above, 
     for index, item in enumerate(source_list):
+        print()
+        print(f'{index} out of {len(source_list)}')
         # Loop through records and extract relevant text
         # import pdb;pdb.set_trace()
         mapping_line = None  

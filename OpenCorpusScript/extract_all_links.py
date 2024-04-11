@@ -11,10 +11,8 @@ def extract_all_links(bibcode, all_links_file):
     all_links_file: path to all.links file'
     '''
 
-    # open links file
     with open(all_links_file, 'r') as f:
         links = f.read().splitlines()
-        
     
     # Search for bibcodes in the links file
     print(f'Searching all.links for {bibcode}')
