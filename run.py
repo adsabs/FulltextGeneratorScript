@@ -17,9 +17,9 @@ import argparse
 from pathlib import Path
 
 
-from OpenCorpusScript.utils import extract_plain_text
-from OpenCorpusScript.utils import harvest_bibcode
-from OpenCorpusScript.utils import extract_all_links
+from FulltextGeneratorScript.utils import extract_plain_text
+from FulltextGeneratorScript.utils import harvest_bibcode
+from FulltextGeneratorScript.utils import extract_all_links
 
 # # ============================= INITIALIZATION ==================================== #
 
